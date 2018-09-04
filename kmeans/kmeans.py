@@ -1,4 +1,5 @@
 import numpy as np
+import random
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
@@ -12,6 +13,8 @@ def print_it(it):
 def load_data(data_path):
     """Return data from a txt file as array"""
     return np.loadtxt(data_path)
+
+# TODO: function for data generation
 
 def euclidian_dist(x, y):
     """Return the Euclidian distance between x and y (N dimentions)"""
@@ -61,6 +64,8 @@ def plot_clusters(clusters, centroids, save=False):
         plt.savefig("clusters_visualization.png")
     plt.show()
 
+# TODO: function for iteration visualization
+
 def average_position_cluster(cluster):
 
     sums = [] #sum on each dimension
@@ -76,37 +81,74 @@ def average_position_cluster(cluster):
 
     return (sums[0]/float(nb_points) , (sums[1]/float(nb_points)))
 
-def kmeans(data, k=2, iter=10, epsilon=None, distance='euclidian'):
+def movement_rate(prev_centroids, centroids):
+
+    sum_diff = 0
+    for prev, centr in zip(prev_centroids, centroids):
+        sum_diff += abs(prev[0] - centr[0])
+        sum_diff += abs(prev[1] - centr[1])
+
+    epsilon = sum_diff / float(len(centroids)) / float(len(centroids[0]))
+
+    return epsilon
+
+def random_centroids(nb_centroid, dims=2, min=0, max=1):
+    centroids = []
+    for i in range(nb_centroid):
+        dim = []
+        for j in range(dims):
+            dim.append(random.random()*max+min)
+        centroids.append(dim)
+    return centroids
+
+
+def kmeans(data, k=2, iter=1, epsilon=0.1, distance='euclidian'):
+    """This function use K-means algorithm to split the data into k clusters
+
+    Args :
+        iter: Number of times we will execute the algorithm from diffrent random points
+        epsilon:
+
+    """
 
     clusters = {}
-    centroids = [(0.15, 0.1), (0.5, 0.1)]
 
-    # TODO: complexe choise op
     for it in range(iter):
         print_it(it)
 
-        print("Centroids before move : \t{}".format(centroids))
+        centroids = random_centroids(2, 2, 0, 2)
 
-        # Reset clusters
-        for i in range(k):
-            clusters[i] = []
 
-        #compute the distance between each point and eauch centroid
-        for data_point in data:
-            dist = []
-            for centr_idx, centroid in enumerate(centroids):
-                dist.append(euclidian_dist(data_point, centroid))
+        convergence = False
 
-            clusters[np.argmin(dist)].append(data_point)
-            #print(dist)
-        #print(clusters[0])
-        #print(clusters[1])
+        while not convergence:
 
-        #Move centroides to the average of their points
-        for clust_idx in clusters.keys():
-            centroids[clust_idx] = average_position_cluster(clusters[clust_idx])
+            prev_centroids = centroids.copy()
 
-        print("Centroids after move : \t{}".format(centroids))
+            # Reset clusters
+            for i in range(k):
+                clusters[i] = []
+
+            #compute the distance between each point and eauch centroid
+            for data_point in data:
+                dist = []
+                for centr_idx, centroid in enumerate(centroids):
+                    dist.append(euclidian_dist(data_point, centroid))
+
+                clusters[np.argmin(dist)].append(data_point)
+
+            #Move centroides to the average of their points
+            for clust_idx in clusters.keys():
+                centroids[clust_idx] = average_position_cluster(clusters[clust_idx])
+
+            move_rate = movement_rate(prev_centroids, centroids)
+            print("Movement rate : {}".format(move_rate))
+            print("From\t{} \nTo\t{}\n".format(prev_centroids, centroids))
+
+            if(move_rate < epsilon):
+                convergence = True
+
+        # TODO: compute std deviation and save the bests clusters
 
     return clusters, centroids
 
