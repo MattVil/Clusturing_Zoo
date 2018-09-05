@@ -4,6 +4,7 @@ import random
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import matplotlib.cm as cm
+import argparse
 
 def print_it(it):
     print("#"*80)
@@ -81,7 +82,7 @@ def average_position_cluster(cluster):
         for dim, value in enumerate(point):
             sums[dim] += value
 
-    return [(sums[0]/float(nb_points)) , (sums[1]/float(nb_points))]
+    return np.asarray([(sums[0]/float(nb_points)) , (sums[1]/float(nb_points))])
 
 def movement_rate(prev_centroids, centroids):
 
@@ -101,7 +102,7 @@ def random_centroids(nb_centroid, dims=2, min=0, max=1):
         for j in range(dims):
             dim.append(random.uniform(min, max))
         centroids.append(dim)
-    return centroids
+    return np.asarray(centroids)
 
 def mean_clusters_std(clusters):
     sum_std = 0
@@ -109,7 +110,7 @@ def mean_clusters_std(clusters):
         sum_std += np.std(clusters[clt])
     return sum_std/float(len(clusters))
 
-def kmeans(data, k=2, iter=1, epsilon=0.1, distance='euclidian'):
+def kmeans(data, k=2, iter=1, epsilon=0.001, verbose=None, distance='euclidian'):
     """This function use K-means algorithm to split the data into k clusters
 
     Args :
@@ -122,18 +123,19 @@ def kmeans(data, k=2, iter=1, epsilon=0.1, distance='euclidian'):
     best_centroids = []
     best_iter = -1
     best_std = sys.maxsize
-    print(best_std)
 
     for it in range(iter):
-        print_it(it)
+        if verbose:
+            print_it(it)
 
         centroids = random_centroids(k, data[0].shape[0],
                                      np.min(data), np.max(data))
 
 
         convergence = False
-
-        while not convergence:
+        cmpt = 0
+        while not convergence and cmpt < 100:
+            cmpt += 1
 
             prev_centroids = centroids.copy()
 
@@ -149,33 +151,45 @@ def kmeans(data, k=2, iter=1, epsilon=0.1, distance='euclidian'):
 
                 clusters[np.argmin(dist)].append(data_point)
 
+
             #Move centroides to the average of their points
             for clust_idx in clusters.keys():
+                clusters[clust_idx] = np.asarray(clusters[clust_idx])
                 centroids[clust_idx] = average_position_cluster(clusters[clust_idx])
 
             move_rate = movement_rate(prev_centroids, centroids)
-            print("Movement rate : {}".format(move_rate))
-            print("From\t{} \nTo\t{}".format(prev_centroids, centroids))
+            if verbose:
+                print("Movement rate : {0:.5f}".format(move_rate))
+            np.set_printoptions(precision=3)
+            if verbose:
+                print("From : \n{}\nTo : \n{}".format(prev_centroids, centroids))
 
             if(move_rate < epsilon):
                 convergence = True
 
         # Compute std deviation and save the bests clusters
         standart_deviation = mean_clusters_std(clusters)
-        print("Standart deviation : {}\n".format(standart_deviation))
+        if verbose:
+            print("Standart deviation : {0:.5f}\n".format(standart_deviation))
         if(standart_deviation < best_std):
             best_std = standart_deviation
-            best_clusters = clusters
-            best_centroids = centroids
+            best_clusters = clusters.copy()
+            best_centroids = centroids.copy()
             best_iter = it
 
-    print("Best clusters found at iteration {}".format(best_iter))
+    if verbose:
+        print("Best clusters found at iteration {}".format(best_iter))
     return best_clusters, best_centroids
 
 if __name__ == '__main__':
-    data = load_data("../data/data.txt")
-    # data = np.load("../data/clusterable_data.npy")
 
-    clusters, centroids = kmeans(data, k=2, iter=3)
-    # plot_data(data)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--verbosity", help="increase output verbosity")
+    args = parser.parse_args()
+
+    # data = load_data("../data/data.txt")
+    data = np.load("../data/clusterable_data.npy")
+
+    clusters, centroids = kmeans(data, k=6, iter=20, verbose=args.verbosity)
+    plot_data(data)
     plot_clusters(clusters, centroids)
