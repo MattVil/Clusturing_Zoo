@@ -1,3 +1,4 @@
+import sys
 import numpy as np
 import random
 import matplotlib.pyplot as plt
@@ -80,7 +81,7 @@ def average_position_cluster(cluster):
         for dim, value in enumerate(point):
             sums[dim] += value
 
-    return (sums[0]/float(nb_points) , (sums[1]/float(nb_points)))
+    return [(sums[0]/float(nb_points)) , (sums[1]/float(nb_points))]
 
 def movement_rate(prev_centroids, centroids):
 
@@ -102,6 +103,11 @@ def random_centroids(nb_centroid, dims=2, min=0, max=1):
         centroids.append(dim)
     return centroids
 
+def mean_clusters_std(clusters):
+    sum_std = 0
+    for clt in clusters.keys():
+        sum_std += np.std(clusters[clt])
+    return sum_std/float(len(clusters))
 
 def kmeans(data, k=2, iter=1, epsilon=0.1, distance='euclidian'):
     """This function use K-means algorithm to split the data into k clusters
@@ -112,7 +118,11 @@ def kmeans(data, k=2, iter=1, epsilon=0.1, distance='euclidian'):
 
     """
 
-    clusters = {}
+    clusters, best_clusters = {}, {}
+    best_centroids = []
+    best_iter = -1
+    best_std = sys.maxsize
+    print(best_std)
 
     for it in range(iter):
         print_it(it)
@@ -145,19 +155,27 @@ def kmeans(data, k=2, iter=1, epsilon=0.1, distance='euclidian'):
 
             move_rate = movement_rate(prev_centroids, centroids)
             print("Movement rate : {}".format(move_rate))
-            print("From\t{} \nTo\t{}\n".format(prev_centroids, centroids))
+            print("From\t{} \nTo\t{}".format(prev_centroids, centroids))
 
             if(move_rate < epsilon):
                 convergence = True
 
-        # TODO: compute std deviation and save the bests clusters
+        # Compute std deviation and save the bests clusters
+        standart_deviation = mean_clusters_std(clusters)
+        print("Standart deviation : {}\n".format(standart_deviation))
+        if(standart_deviation < best_std):
+            best_std = standart_deviation
+            best_clusters = clusters
+            best_centroids = centroids
+            best_iter = it
 
-    return clusters, centroids
+    print("Best clusters found at iteration {}".format(best_iter))
+    return best_clusters, best_centroids
 
 if __name__ == '__main__':
     data = load_data("../data/data.txt")
     # data = np.load("../data/clusterable_data.npy")
 
-    clusters, centroids = kmeans(data, k=2, iter=20)
+    clusters, centroids = kmeans(data, k=2, iter=3)
     # plot_data(data)
-    plot_clusters(clusters, centroids, True)
+    plot_clusters(clusters, centroids)
