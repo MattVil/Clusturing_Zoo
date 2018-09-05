@@ -2,6 +2,7 @@ import numpy as np
 import random
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
+import matplotlib.cm as cm
 
 def print_it(it):
     print("#"*80)
@@ -43,19 +44,16 @@ def plot_data(data, save=False):
 
 def plot_clusters(clusters, centroids, save=False):
 
-    xCentroid, yCentroid = [], []
-    color = ['b', 'g', 'y', 'o']
-    for centroid in centroids:
-        xCentroid.append(centroid[0])
-        yCentroid.append(centroid[1])
-    plt.scatter(xCentroid, yCentroid, c='r')
+    colors = iter(cm.rainbow(np.linspace(0, 1, len(centroids))))
 
-    for clt in clusters.keys():
+    for clt, centroid in zip(clusters.keys(), centroids):
         x, y = [], []
+        color = next(colors)
         for point in clusters[clt]:
             x.append(point[0])
             y.append(point[1])
-        plt.scatter(x, y, c=color[clt])
+        plt.scatter(x, y, c=color)
+        plt.scatter(centroid[0],centroid[1], marker='x', c=color)
 
     plt.title("Clusters visualization")
     plt.xlabel("x")
@@ -70,6 +68,9 @@ def average_position_cluster(cluster):
 
     sums = [] #sum on each dimension
     nb_points = len(cluster)
+
+    if nb_points == 0:
+        return 0, 0
 
     #init the sums array with the good number of dims
     for dim in cluster[0]:
@@ -97,7 +98,7 @@ def random_centroids(nb_centroid, dims=2, min=0, max=1):
     for i in range(nb_centroid):
         dim = []
         for j in range(dims):
-            dim.append(random.random()*max+min)
+            dim.append(random.uniform(min, max))
         centroids.append(dim)
     return centroids
 
@@ -116,7 +117,8 @@ def kmeans(data, k=2, iter=1, epsilon=0.1, distance='euclidian'):
     for it in range(iter):
         print_it(it)
 
-        centroids = random_centroids(2, 2, 0, 2)
+        centroids = random_centroids(k, data[0].shape[0],
+                                     np.min(data), np.max(data))
 
 
         convergence = False
@@ -153,7 +155,9 @@ def kmeans(data, k=2, iter=1, epsilon=0.1, distance='euclidian'):
     return clusters, centroids
 
 if __name__ == '__main__':
-    data = load_data("./data.txt")
-    clusters, centroids = kmeans(data)
-    #plot_data(data)
+    data = load_data("../data/data.txt")
+    # data = np.load("../data/clusterable_data.npy")
+
+    clusters, centroids = kmeans(data, k=2, iter=20)
+    # plot_data(data)
     plot_clusters(clusters, centroids, True)
