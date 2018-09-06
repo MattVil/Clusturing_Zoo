@@ -29,12 +29,8 @@ def euclidian_dist(x, y):
 
 def plot_data(data, save=False):
     """Simple plot of the data. /!\ 2 dims only for now"""
-    x, y = [], []
-    for point in data:
-        x.append(point[0])
-        y.append(point[1])
 
-    plt.scatter(x, y)
+    plt.scatter(data[:,0], data[:,1])
 
     plt.title("Data visualization")
     plt.xlabel("x")
@@ -49,12 +45,8 @@ def plot_clusters(clusters, centroids, save=False):
     colors = iter(cm.rainbow(np.linspace(0, 1, len(centroids))))
 
     for clt, centroid in zip(clusters.keys(), centroids):
-        x, y = [], []
         color = next(colors)
-        for point in clusters[clt]:
-            x.append(point[0])
-            y.append(point[1])
-        plt.scatter(x, y, c=color)
+        plt.scatter(clusters[clt][:,0], clusters[clt][:,1], c=color)
         plt.scatter(centroid[0],centroid[1], marker='x', c=color)
 
     plt.title("Clusters visualization")
@@ -190,6 +182,6 @@ if __name__ == '__main__':
     # data = load_data("../data/data.txt")
     data = np.load("../data/clusterable_data.npy")
 
-    clusters, centroids = kmeans(data, k=6, iter=20, verbose=args.verbosity)
+    clusters, centroids = kmeans(data, k=6, iter=2, verbose=args.verbosity)
     plot_data(data)
     plot_clusters(clusters, centroids)
